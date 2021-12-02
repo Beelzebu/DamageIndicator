@@ -16,6 +16,7 @@
 package cl.mastercode.DamageIndicator.listener;
 
 import cl.mastercode.DamageIndicator.DIMain;
+import cl.mastercode.DamageIndicator.hook.HookManager;
 import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUtil;
 import cl.mastercode.DamageIndicator.util.EntityHider;
@@ -51,6 +52,7 @@ import org.bukkit.metadata.FixedMetadataValue;
  * @author YitanTribal, Beelzebu
  */
 public class DamageIndicatorListener implements Listener {
+
     private static final String DISABLED_DI = "DI-DISABLED-DI";
     private final DIMain plugin;
     private final Map<ArmorStand, Long> armorStands = new LinkedHashMap<>();
@@ -63,10 +65,12 @@ public class DamageIndicatorListener implements Listener {
     private boolean enableMonster = true;
     private boolean enableAnimal = true;
     private boolean sneaking = false;
+    private final HookManager hookManager;
     private EntityHider hider;
 
-    public DamageIndicatorListener(DIMain plugin) {
+    public DamageIndicatorListener(DIMain plugin, HookManager hookManager) {
         this.plugin = plugin;
+        this.hookManager = hookManager;
         armorStandMeta = new FixedMetadataValue(plugin, 0);
         reload();
     }
@@ -174,7 +178,7 @@ public class DamageIndicatorListener implements Listener {
             return;
         }
         if (!e.isCancelled()) {
-            handleArmorStand((LivingEntity) e.getEntity(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityRegain").replace("%health%", damageFormat(e.getAmount()))), null, e.getAmount());
+            handleArmorStand((LivingEntity) e.getEntity(), e.getAmount());
         }
     }
 
@@ -186,7 +190,7 @@ public class DamageIndicatorListener implements Listener {
         if (!(e.getEntity() instanceof LivingEntity)) {
             return;
         }
-        handleArmorStand((LivingEntity) e.getEntity(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityDamage").replace("%damage%", damageFormat(e.getFinalDamage()))), e.getCause(), e.getFinalDamage());
+        handleArmorStand((LivingEntity) e.getEntity(), e.getCause(), e.getFinalDamage(), hookManager.isCritic(e));
     }
 
     private String damageFormat(double damage) {
@@ -199,9 +203,19 @@ public class DamageIndicatorListener implements Listener {
         return df.format(damage);
     }
 
-    private void handleArmorStand(LivingEntity entity, String format, EntityDamageEvent.DamageCause damageCause, double damage) {
+    private void handleArmorStand(LivingEntity entity, double health) {
+        if (isSpawnArmorStand(entity, null, health)) {
+            spawnArmorStand(entity.getLocation(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityRegain").replace("%health%", damageFormat(health))));
+        }
+    }
+
+    private void handleArmorStand(LivingEntity entity, EntityDamageEvent.DamageCause damageCause, double damage, boolean crit) {
         if (isSpawnArmorStand(entity, damageCause, damage)) {
-            spawnArmorStand(entity.getLocation(), format);
+            if (!crit) {
+                spawnArmorStand(entity.getLocation(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityDamage").replace("%damage%", damageFormat(damage))));
+            } else {
+                spawnArmorStand(entity.getLocation(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityDamage").replace("%damage%", damageFormat(damage)) + "&r ✧"));
+            }
         }
     }
 

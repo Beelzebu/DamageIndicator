@@ -2,7 +2,7 @@ name: DamageIndicator
 main: cl.mastercode.DamageIndicator.DIMain
 authors: [ Beelzebu, CristianDossow ]
 version: ${project.version}
-softdepend: [ ProtocolLib ]
+softdepend: [ ProtocolLib, EcoSkills ]
 api-version: 1.13
 commands:
   damageindicator:

@@ -16,6 +16,7 @@
 package cl.mastercode.DamageIndicator;
 
 import cl.mastercode.DamageIndicator.command.CommandHandler;
+import cl.mastercode.DamageIndicator.hook.HookManager;
 import cl.mastercode.DamageIndicator.listener.BloodListener;
 import cl.mastercode.DamageIndicator.listener.DamageIndicatorListener;
 import cl.mastercode.DamageIndicator.storage.SimpleStorageProvider;
@@ -50,7 +51,7 @@ public class DIMain extends JavaPlugin {
             damageIndicatorListener.getArmorStands().clear();
             damageIndicatorListener.reload();
         } else if (getConfig().getBoolean("Damage Indicator.Enabled")) {
-            Bukkit.getPluginManager().registerEvents(damageIndicatorListener = new DamageIndicatorListener(this), this);
+            Bukkit.getPluginManager().registerEvents(damageIndicatorListener = new DamageIndicatorListener(this, new HookManager(this)), this);
         }
         if (bloodListener != null) {
             bloodListener.getBloodItems().forEach((item, time) -> item.remove());
