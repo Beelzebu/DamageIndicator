@@ -167,8 +167,10 @@ public class DIMain extends JavaPlugin {
     }
 
     public boolean isDamageIndicator(Entity entity) {
-        ArmorStand as = (ArmorStand) entity;
-        return as.hasMetadata("Mastercode-DamageIndicator") && as.isMarker() && !as.isVisible() && as.isCustomNameVisible() && !as.hasGravity();
+        if (entity instanceof ArmorStand armorStand && entity.isValid()) {
+            return armorStand.hasMetadata("Mastercode-DamageIndicator") && armorStand.isMarker() && !armorStand.isVisible() && armorStand.isCustomNameVisible() && !armorStand.hasGravity();
+        }
+        return false;
     }
 
     public StorageProvider getStorageProvider() {

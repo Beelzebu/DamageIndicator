@@ -20,15 +20,12 @@ import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUtil;
 import org.bukkit.Color;
 import org.bukkit.Effect;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -44,7 +41,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.Vector;
-import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -71,19 +67,9 @@ public class BloodListener implements Listener {
     private boolean enableMonster = true;
     private boolean enableAnimal = true;
     private boolean sneaking = true;
-    private Method playEffect;
 
     public BloodListener(DIMain plugin) {
         this.plugin = plugin;
-        if (!CompatUtil.is113orHigher()) {
-            try {
-                playEffect = World.Spigot.class.getMethod("playEffect", Location.class, Effect.class, int.class, int.class, float.class, float.class, float.class, float.class, int.class, int.class);
-            } catch (ReflectiveOperationException e) {
-                plugin.getLogger().log(Level.WARNING, "Error using legacy blood particles, please report this issue.", e);
-            }
-        } else {
-            playEffect = null;
-        }
         reload();
     }
 
@@ -143,23 +129,8 @@ public class BloodListener implements Listener {
         if (!showBlood(entity, e.getCause(), e.getFinalDamage())) {
             return;
         }
-        if (CompatUtil.MINOR_VERSION >= 20) {
-            e.getEntity().getWorld().spawnParticle(Particle.valueOf("DUST"), ((LivingEntity) e.getEntity()).getEyeLocation(), 7, .5, 1, .5, new Particle.DustOptions(Color.RED, 3f));
-        } else if (CompatUtil.is113orHigher()) {
-            e.getEntity().getWorld().spawnParticle(Particle.valueOf("REDSTONE"), ((LivingEntity) e.getEntity()).getEyeLocation(), 7, .5, 1, .5, new Particle.DustOptions(Color.RED, 3f));
-        } else if (CompatUtil.MINOR_VERSION == 8) {
-            try {
-                if (playEffect != null) {
-                    playEffect.invoke(e.getEntity().getWorld().spigot(), ((LivingEntity) e.getEntity()).getEyeLocation(), Effect.valueOf("COLOURED_DUST"), 0, 0, 0.4f, 0.3f, 0.4f, 0, 8, 16);
-                }
-            } catch (ReflectiveOperationException exception) {
-                plugin.getLogger().log(Level.WARNING, "Error trying to spawn blood particles, please report this issue.", exception);
-            }
-        } else {
-            for (int i = 0; i < 5; i++) {
-                e.getEntity().getNearbyEntities(20, 20, 20).stream().filter(nearbyEntity -> nearbyEntity instanceof Player).map(nearbyEntity -> (Player) nearbyEntity).forEach(player -> player.spawnParticle(Particle.valueOf("REDSTONE"), ((LivingEntity) e.getEntity()).getEyeLocation().clone().add(random.nextDouble(), random.nextDouble(), random.nextDouble()), 0, 255, 0, 0, 1));
-            }
-        }
+        LivingEntity livingEntity = (LivingEntity) entity;
+        e.getEntity().getWorld().spawnParticle(CompatUtil.BLOOD_PARTICLE, livingEntity.getEyeLocation(), 7, .5, .2, .5, 10, new Particle.DustOptions(Color.fromBGR(61, 61, 255), 3f));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -194,7 +165,7 @@ public class BloodListener implements Listener {
             return;
         }
         for (int i = 0; i < 14; i++) {
-            ItemStack is = new ItemStack(CompatUtil.RED_INK);
+            ItemStack is = new ItemStack(new ItemStack(Material.RED_DYE));
             ItemMeta meta = is.getItemMeta();
             meta.setDisplayName(BLOOD_NAME);
             is.setItemMeta(meta);

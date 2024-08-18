@@ -21,6 +21,7 @@ import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -158,20 +159,19 @@ public class DamageIndicatorListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityRegainHealth(EntityRegainHealthEvent e) {
-        if (!(e.getEntity() instanceof LivingEntity)) {
+        if (!(e.getEntity() instanceof LivingEntity livingEntity)) {
             return;
         }
-        if (e.getEntity() instanceof Player) {
-            Player player = (Player) e.getEntity();
+        if (e.getEntity() instanceof Player player) {
             if (player.isSneaking() && !sneaking) {
                 return;
             }
         }
-        if (((LivingEntity) e.getEntity()).getHealth() == CompatUtil.getMaxHealth((LivingEntity) e.getEntity())) {
+        if (livingEntity.getHealth() == Objects.requireNonNull(livingEntity.getAttribute(Attribute.GENERIC_MAX_HEALTH)).getValue()) {
             return;
         }
         if (!e.isCancelled()) {
-            handleArmorStand((LivingEntity) e.getEntity(), e.getAmount());
+            handleArmorStand(livingEntity, e.getAmount());
         }
     }
 
