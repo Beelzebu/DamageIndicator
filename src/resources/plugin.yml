@@ -3,12 +3,9 @@ main: cl.mastercode.DamageIndicator.DIMain
 authors: [ Beelzebu, CristianDossow ]
 version: ${project.version}
 softdepend: [ ProtocolLib, EcoSkills ]
-api-version: 1.13
-commands:
-  damageindicator:
-    description: Main DamageIndicator command
-    usage: /<command> <arguments>
-    aliases: [ di ]
-permissions:
-  damageindicator.admin:
-    description: Access to admin commands
+api-version: 1.16
+website: 'https://www.spigotmc.org/resources/55974/'
+description: 'DamageIndicator is a plugin that shows the damage you do to a mob or player.'
+libraries:
+- 'net.kyori:adventure-text-minimessage:4.17.0'
+- 'net.kyori:adventure-platform-bukkit:4.3.4'

@@ -19,18 +19,7 @@ import cl.mastercode.DamageIndicator.DIMain;
 import cl.mastercode.DamageIndicator.hook.HookManager;
 import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUtil;
-import cl.mastercode.DamageIndicator.util.EntityHider;
-import cl.mastercode.DamageIndicator.util.EntityHider.Policy;
-import java.text.DecimalFormat;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -47,6 +36,14 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.metadata.FixedMetadataValue;
+import java.text.DecimalFormat;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author YitanTribal, Beelzebu
@@ -60,13 +57,12 @@ public class DamageIndicatorListener implements Listener {
     private final Set<CreatureSpawnEvent.SpawnReason> disabledSpawnReasons = new HashSet<>();
     private final Set<EntityDamageEvent.DamageCause> disabledDamageCauses = new HashSet<>();
     private final FixedMetadataValue armorStandMeta;
+    private final HookManager hookManager;
     private boolean enabled = true;
     private boolean enablePlayer = true;
     private boolean enableMonster = true;
     private boolean enableAnimal = true;
     private boolean sneaking = false;
-    private final HookManager hookManager;
-    private EntityHider hider;
 
     public DamageIndicatorListener(DIMain plugin, HookManager hookManager) {
         this.plugin = plugin;
@@ -83,9 +79,6 @@ public class DamageIndicatorListener implements Listener {
         enableMonster = plugin.getConfig().getBoolean("Damage Indicator.Monster");
         enableAnimal = plugin.getConfig().getBoolean("Damage Indicator.Animals");
         sneaking = plugin.getConfig().getBoolean("Damage Indicator.Sneaking");
-        if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
-            hider = new EntityHider(plugin, Policy.BLACKLIST);
-        }
         plugin.getConfig().getStringList("Damage Indicator.Disabled Entities").stream().map(entity -> {
             try {
                 return EntityType.valueOf(entity.toUpperCase());
@@ -205,24 +198,24 @@ public class DamageIndicatorListener implements Listener {
 
     private void handleArmorStand(LivingEntity entity, double health) {
         if (isSpawnArmorStand(entity, null, health)) {
-            spawnArmorStand(entity.getLocation(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityRegain").replace("%health%", damageFormat(health))));
+            spawnArmorStand(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityRegain", "").replace("%health%", damageFormat(health)));
         }
     }
 
     private void handleArmorStand(LivingEntity entity, EntityDamageEvent.DamageCause damageCause, double damage, boolean crit) {
         if (isSpawnArmorStand(entity, damageCause, damage)) {
             if (!crit) {
-                spawnArmorStand(entity.getLocation(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityDamage").replace("%damage%", damageFormat(damage))));
+                spawnArmorStand(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityDamage", "").replace("%damage%", damageFormat(damage)));
             } else {
-                spawnArmorStand(entity.getLocation(), ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("Damage Indicator.Format.EntityDamage").replace("%damage%", damageFormat(damage)) + "&r ✧"));
+                spawnArmorStand(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityDamage", "").replace("%damage%", damageFormat(damage)) + "&r ✧");
             }
         }
     }
 
     public ArmorStand spawnArmorStand(Location loc, String name) {
         ArmorStand armorStand = CompatUtil.buildArmorStand(loc, plugin.getConfig().getDouble("Damage Indicator.Distance"), armorStandMeta, name);
-        if (hider != null) {
-            Bukkit.getOnlinePlayers().stream().filter(op -> !plugin.getStorageProvider().showArmorStand(op)).forEach(op -> hider.hideEntity(op, armorStand));
+        if (plugin.getEntityHider() != null) {
+            Bukkit.getOnlinePlayers().stream().filter(op -> !plugin.getStorageProvider().showArmorStand(op)).forEach(op -> plugin.getEntityHider().hideEntity(op, armorStand));
         }
         armorStands.put(armorStand, System.currentTimeMillis());
         return armorStand;

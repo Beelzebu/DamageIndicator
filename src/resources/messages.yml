@@ -1,0 +1,18 @@
+version: 1
+
+Command:
+  Help:
+    Header: "<click:open_url:'https://www.spigotmc.org/resources/55974/'><color:#ff144b><st><b>━━━━━━━━━━━━━━━━</b></st></color> <b><color:#ff708a>Damage Indicator</color></b> <color:#ff144b><st><b>━━━━━━━━━━━━━━━━━━━━</b></st></color></click>"
+    Reload: "  <color:#fffaaa>/di reload</color> <b>-</b> Reload the plugin"
+    Clear: "  <color:#fffaaa>/di clear <range></color> <b>-</b> Clear damage indicators in range"
+    Clear All: "  <color:#fffaaa>/di clearall</color> <b>-</b> Clear all damage indicators"
+    Toggle: "  <color:#fffaaa>/di toggle</color> <b>-</b> Toggle damage indicators"
+  Clear:
+    Total: "<color:#00ff62>{0} Damage indicators were removed in a radius of {1}!</color>"
+    All: "<color:#00ff62>{0} Damage indicators were removed!</color>"
+    Invalid: "{0} <color:#ff0f23>is not a valid value</color>"
+  Reload: "<color:#00ff62>Plugin was reloaded successfully!</color>"
+  No Console: "<color:#ff0f23>This command can't be executed from console.</color>"
+  Damage Indicator:
+    Enabled: "<gray>You have enabled damage indicators</gray>"
+    Disabled: "<gray>You are no longer viewing damage indicators</gray>"

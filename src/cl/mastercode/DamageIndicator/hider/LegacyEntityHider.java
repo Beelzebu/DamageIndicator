@@ -1,10 +1,12 @@
-package cl.mastercode.DamageIndicator.util;
+package cl.mastercode.DamageIndicator.hider;
 
 import com.comphenix.protocol.PacketType;
 import static com.comphenix.protocol.PacketType.Play.Server.ANIMATION;
 import static com.comphenix.protocol.PacketType.Play.Server.ATTACH_ENTITY;
+import static com.comphenix.protocol.PacketType.Play.Server.BED;
 import static com.comphenix.protocol.PacketType.Play.Server.BLOCK_BREAK_ANIMATION;
 import static com.comphenix.protocol.PacketType.Play.Server.COLLECT;
+import static com.comphenix.protocol.PacketType.Play.Server.COMBAT_EVENT;
 import static com.comphenix.protocol.PacketType.Play.Server.ENTITY_DESTROY;
 import static com.comphenix.protocol.PacketType.Play.Server.ENTITY_EFFECT;
 import static com.comphenix.protocol.PacketType.Play.Server.ENTITY_EQUIPMENT;
@@ -16,54 +18,78 @@ import static com.comphenix.protocol.PacketType.Play.Server.ENTITY_STATUS;
 import static com.comphenix.protocol.PacketType.Play.Server.ENTITY_TELEPORT;
 import static com.comphenix.protocol.PacketType.Play.Server.ENTITY_VELOCITY;
 import static com.comphenix.protocol.PacketType.Play.Server.NAMED_ENTITY_SPAWN;
+import static com.comphenix.protocol.PacketType.Play.Server.PLAYER_COMBAT_END;
+import static com.comphenix.protocol.PacketType.Play.Server.PLAYER_COMBAT_ENTER;
+import static com.comphenix.protocol.PacketType.Play.Server.PLAYER_COMBAT_KILL;
 import static com.comphenix.protocol.PacketType.Play.Server.REL_ENTITY_MOVE;
+import static com.comphenix.protocol.PacketType.Play.Server.REL_ENTITY_MOVE_LOOK;
 import static com.comphenix.protocol.PacketType.Play.Server.REMOVE_ENTITY_EFFECT;
 import static com.comphenix.protocol.PacketType.Play.Server.SPAWN_ENTITY;
 import static com.comphenix.protocol.PacketType.Play.Server.SPAWN_ENTITY_EXPERIENCE_ORB;
 import static com.comphenix.protocol.PacketType.Play.Server.SPAWN_ENTITY_LIVING;
 import static com.comphenix.protocol.PacketType.Play.Server.SPAWN_ENTITY_PAINTING;
+import static com.comphenix.protocol.PacketType.Play.Server.UPDATE_ENTITY_NBT;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Map;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 
 /**
- * Original source: https://gist.github.com/aadnk/5871793
+ * Original source: <a href="https://gist.github.com/dmulloy2/5526f5bf906c064c255e">https://gist.github.com/dmulloy2/5526f5bf906c064c255e</a>
  *
  * @author aadnk
  */
-public class EntityHider implements Listener {
-
+public class LegacyEntityHider extends EntityHider {
     // Packets that update remote player entities
     private static final PacketType[] ENTITY_PACKETS = {
-            ENTITY_EQUIPMENT, ANIMATION, NAMED_ENTITY_SPAWN,
-            COLLECT, SPAWN_ENTITY, SPAWN_ENTITY_LIVING, SPAWN_ENTITY_PAINTING, SPAWN_ENTITY_EXPERIENCE_ORB,
-            ENTITY_VELOCITY, REL_ENTITY_MOVE, ENTITY_LOOK, ENTITY_MOVE_LOOK, ENTITY_MOVE_LOOK,
-            ENTITY_TELEPORT, ENTITY_HEAD_ROTATION, ENTITY_STATUS, ATTACH_ENTITY, ENTITY_METADATA,
-            ENTITY_EFFECT, REMOVE_ENTITY_EFFECT, BLOCK_BREAK_ANIMATION
-
+            ENTITY_EQUIPMENT,
+            BED,
+            ANIMATION,
+            NAMED_ENTITY_SPAWN,
+            COLLECT,
+            SPAWN_ENTITY,
+            SPAWN_ENTITY_LIVING,
+            SPAWN_ENTITY_PAINTING,
+            SPAWN_ENTITY_EXPERIENCE_ORB,
+            ENTITY_VELOCITY,
+            REL_ENTITY_MOVE,
+            ENTITY_LOOK,
+            ENTITY_MOVE_LOOK,
+            ENTITY_MOVE_LOOK,
+            ENTITY_TELEPORT,
+            ENTITY_HEAD_ROTATION,
+            ENTITY_STATUS,
+            ATTACH_ENTITY,
+            ENTITY_METADATA,
+            ENTITY_EFFECT,
+            REMOVE_ENTITY_EFFECT,
+            BLOCK_BREAK_ANIMATION,
+            UPDATE_ENTITY_NBT,
+            COMBAT_EVENT,
+            REL_ENTITY_MOVE,
+            REL_ENTITY_MOVE_LOOK,
+            PLAYER_COMBAT_END,
+            PLAYER_COMBAT_KILL,
+            PLAYER_COMBAT_ENTER
             // We don't handle DESTROY_ENTITY though
     };
     // Current policy
     private final Policy policy;
     // Listeners
-    private final Listener bukkitListener;
     private final PacketAdapter protocolListener;
     private final Table<Integer, Integer, Boolean> observerEntityMap = HashBasedTable.create();
     private ProtocolManager manager;
@@ -74,18 +100,16 @@ public class EntityHider implements Listener {
      * @param plugin - the plugin that controls this entity hider.
      * @param policy - the default visibility policy.
      */
-    public EntityHider(Plugin plugin, Policy policy) {
-        Preconditions.checkNotNull(plugin, "plugin cannot be NULL.");
+    public LegacyEntityHider(Plugin plugin, Policy policy) {
+        Objects.requireNonNull(plugin, "plugin cannot be NULL.");
 
         // Save policy
         this.policy = policy;
-        manager = ProtocolLibrary.getProtocolManager();
+        this.manager = ProtocolLibrary.getProtocolManager();
 
         // Register events and packet listener
-        plugin.getServer().getPluginManager().registerEvents(
-                bukkitListener = constructBukkit(), plugin);
-        manager.addPacketListener(
-                protocolListener = constructProtocol(plugin));
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        manager.addPacketListener(protocolListener = constructProtocol(plugin));
     }
 
     /**
@@ -140,7 +164,7 @@ public class EntityHider implements Listener {
      * Determine if a given entity is visible for a particular observer.
      *
      * @param observer - the observer player.
-     * @param entityID - ID of the entity that we are testing for visibility.
+     * @param entityID -  ID of the entity that we are testing for visibility.
      * @return TRUE if the entity is visible, FALSE otherwise.
      */
     private boolean isVisible(Player observer, int entityID) {
@@ -169,35 +193,26 @@ public class EntityHider implements Listener {
      *
      * @param player - the player that jused logged out.
      */
-    private void removePlayer(Player player) {
+    private void removePlayer(org.bukkit.entity.Player player) {
         // Cleanup
         observerEntityMap.rowMap().remove(player.getEntityId());
     }
 
-    /**
-     * Construct the Bukkit event listener.
-     *
-     * @return Our listener.
-     */
-    private Listener constructBukkit() {
-        return new Listener() {
-            @EventHandler
-            public void onEntityDeath(EntityDeathEvent e) {
-                removeEntity(e.getEntity(), true);
-            }
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent e) {
+        removeEntity(e.getEntity(), true);
+    }
 
-            @EventHandler
-            public void onChunkUnload(ChunkUnloadEvent e) {
-                for (Entity entity : e.getChunk().getEntities()) {
-                    removeEntity(entity, false);
-                }
-            }
+    @EventHandler
+    public void onChunkUnload(ChunkUnloadEvent e) {
+        for (Entity entity : e.getChunk().getEntities()) {
+            removeEntity(entity, false);
+        }
+    }
 
-            @EventHandler
-            public void onPlayerQuit(PlayerQuitEvent e) {
-                removePlayer(e.getPlayer());
-            }
-        };
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent e) {
+        removePlayer(e.getPlayer());
     }
 
     /**
@@ -207,16 +222,16 @@ public class EntityHider implements Listener {
      * @return The packet listener.
      */
     private PacketAdapter constructProtocol(Plugin plugin) {
-        return new PacketAdapter(plugin, EntityHider.ENTITY_PACKETS) {
+        return new PacketAdapter(plugin, ENTITY_PACKETS) {
             @Override
             public void onPacketSending(PacketEvent event) {
-                if (event.isPlayerTemporary()) {
-                    return;
-                }
-                int entityID = event.getPacket().getIntegers().read(0);
-                // See if this packet should be cancelled
-                if (!isVisible(event.getPlayer(), entityID)) {
-                    event.setCancelled(true);
+                int index = event.getPacketType() == COMBAT_EVENT ? 1 : 0;
+
+                Integer entityID = event.getPacket().getIntegers().readSafely(index);
+                if (entityID != null) {
+                    if (!isVisible(event.getPlayer(), entityID)) {
+                        event.setCancelled(true);
+                    }
                 }
             }
         };
@@ -231,6 +246,7 @@ public class EntityHider implements Listener {
      * @param entity   - the entity to toggle.
      * @return TRUE if the entity was visible before, FALSE otherwise.
      */
+    @Override
     public final boolean toggleEntity(Player observer, Entity entity) {
         if (isVisible(observer, entity.getEntityId())) {
             return hideEntity(observer, entity);
@@ -246,13 +262,14 @@ public class EntityHider implements Listener {
      * @param entity   - the entity to show.
      * @return TRUE if the entity was hidden before, FALSE otherwise.
      */
+    @Override
     public final boolean showEntity(Player observer, Entity entity) {
         validate(observer, entity);
         boolean hiddenBefore = !setVisibility(observer, entity.getEntityId(), true);
 
         // Resend packets
         if (manager != null && hiddenBefore) {
-            manager.updateEntity(entity, Arrays.asList(observer));
+            manager.updateEntity(entity, Collections.singletonList(observer));
         }
         return hiddenBefore;
     }
@@ -264,6 +281,7 @@ public class EntityHider implements Listener {
      * @param entity   - the entity to hide.
      * @return TRUE if the entity was previously visible, FALSE otherwise.
      */
+    @Override
     public final boolean hideEntity(Player observer, Entity entity) {
         validate(observer, entity);
         boolean visibleBefore = setVisibility(observer, entity.getEntityId(), false);
@@ -273,11 +291,7 @@ public class EntityHider implements Listener {
             destroyEntity.getIntegerArrays().write(0, new int[]{entity.getEntityId()});
 
             // Make the entity disappear
-            try {
-                manager.sendServerPacket(observer, destroyEntity);
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException("Cannot send server packet.", e);
-            }
+            manager.sendServerPacket(observer, destroyEntity);
         }
         return visibleBefore;
     }
@@ -285,8 +299,9 @@ public class EntityHider implements Listener {
     /**
      * Determine if the given entity has been hidden from an observer.
      * <p>
-     * Note that the entity may very well be occluded or out of range from the perspective of the observer. This method
-     * simply checks if an entity has been completely hidden for that observer.
+     * Note that the entity may very well be occluded or out of range from the perspective
+     * of the observer. This method simply checks if an entity has been completely hidden
+     * for that observer.
      *
      * @param observer - the observer.
      * @param entity   - the entity that may be hidden.
@@ -298,12 +313,6 @@ public class EntityHider implements Listener {
         return isVisible(observer, entity.getEntityId());
     }
 
-    // For valdiating the input parameters
-    private void validate(Player observer, Entity entity) {
-        Preconditions.checkNotNull(observer, "observer cannot be NULL.");
-        Preconditions.checkNotNull(entity, "entity cannot be NULL.");
-    }
-
     /**
      * Retrieve the current visibility policy.
      *
@@ -313,27 +322,13 @@ public class EntityHider implements Listener {
         return policy;
     }
 
-    public void close() {
+    @Override
+    public void close() throws Exception {
+        super.close();
         if (manager != null) {
-            HandlerList.unregisterAll(bukkitListener);
+            HandlerList.unregisterAll(this);
             manager.removePacketListener(protocolListener);
             manager = null;
         }
-    }
-
-    /**
-     * The current entity visibility policy.
-     *
-     * @author Kristian
-     */
-    public enum Policy {
-        /**
-         * All entities are invisible by default. Only entities specifically made visible may be seen.
-         */
-        WHITELIST,
-        /**
-         * All entities are visible by default. An entity can only be hidden explicitly.
-         */
-        BLACKLIST,
     }
 }

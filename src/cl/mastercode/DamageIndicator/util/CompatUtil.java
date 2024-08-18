@@ -16,6 +16,9 @@
 package cl.mastercode.DamageIndicator.util;
 
 import cl.mastercode.DamageIndicator.DIMain;
+import net.kyori.adventure.platform.bukkit.BukkitComponentSerializer;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -25,6 +28,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
+import java.util.Objects;
 
 /**
  * Class to manage compatibility with older minecraft versions.
@@ -33,6 +37,8 @@ import org.bukkit.metadata.FixedMetadataValue;
  */
 public final class CompatUtil {
 
+    private static final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private static final LegacyComponentSerializer legacySerializer = BukkitComponentSerializer.legacy();
     public static ItemStack RED_INK = null;
     public static int MINOR_VERSION = 8;
 
@@ -59,16 +65,16 @@ public final class CompatUtil {
 
     public static double getMaxHealth(LivingEntity livingEntity) {
         if (MINOR_VERSION > 8) {
-            return livingEntity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+            return Objects.requireNonNull(livingEntity.getAttribute(Attribute.GENERIC_MAX_HEALTH)).getValue();
         }
         return livingEntity.getMaxHealth();
     }
 
     private static int _getMinorVersion() {
-        String ver = Bukkit.getServer().getClass().getPackage().getName().substring(Bukkit.getServer().getClass().getPackage().getName().lastIndexOf(".") + 1);
+        String ver = Bukkit.getServer().getBukkitVersion();
         int verInt = -1;
         try {
-            verInt = Integer.parseInt(ver.split("_")[1]);
+            verInt = Integer.parseInt(ver.split("\\.")[1]);
         } catch (IllegalArgumentException e) {
             Bukkit.getScheduler().runTask(DIMain.getPlugin(DIMain.class), () -> {
                 DIMain.getPlugin(DIMain.class).getLogger().warning("An error occurred getting server version, please contact developer.");
@@ -86,7 +92,7 @@ public final class CompatUtil {
         } else {
             armorStand = legacyEntitySpawn(location, distance, fixedMetadataValue);
         }
-        armorStand.setCustomName(name);
+        armorStand.setCustomName(legacySerializer.serialize(miniMessage.deserialize(name)));
         armorStand.setCustomNameVisible(true);
         return armorStand;
     }
