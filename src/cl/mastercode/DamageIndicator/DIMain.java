@@ -38,7 +38,6 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -197,7 +196,7 @@ public class DIMain extends JavaPlugin {
         messages = YamlConfiguration.loadConfiguration(getDataFolder().toPath().resolve("messages.yml").toFile());
     }
 
-    public @NonNull BukkitAudiences adventure() {
+    public BukkitAudiences adventure() {
         if (this.adventure == null) {
             throw new IllegalStateException("Tried to access Adventure when the plugin was disabled!");
         }

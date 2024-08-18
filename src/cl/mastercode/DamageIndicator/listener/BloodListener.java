@@ -43,6 +43,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -56,6 +57,7 @@ public class BloodListener implements Listener {
 
     private static final String BLOOD_NAME = "di-blood";
     private static final String DISABLED_BLOOD = "DI-DISABLED-BLOOD";
+    private static final ItemStack[] BLOOD_ITEMS = new ItemStack[]{new ItemStack(Material.CRIMSON_ROOTS), new ItemStack(Material.FIRE_CORAL_FAN), new ItemStack(Material.RED_DYE)};
     private final DIMain plugin;
     private final Map<Item, Long> bloodItems = new LinkedHashMap<>();
     private final Set<EntityType> disabledEntities = new HashSet<>();
@@ -165,11 +167,15 @@ public class BloodListener implements Listener {
             return;
         }
         for (int i = 0; i < 14; i++) {
-            ItemStack is = new ItemStack(new ItemStack(Material.RED_DYE));
+            ItemStack is = BLOOD_ITEMS[i % 3];
             ItemMeta meta = is.getItemMeta();
-            meta.setDisplayName(BLOOD_NAME);
-            is.setItemMeta(meta);
-            Item item = e.getEntity().getWorld().dropItemNaturally(e.getEntity().getLocation(), is);
+            // check if meta was already set for item on the array
+            if (!meta.hasDisplayName()) {
+                meta.setDisplayName(BLOOD_NAME);
+                meta.setLore(List.of(String.valueOf(i)));
+                is.setItemMeta(meta);
+            }
+            Item item = e.getEntity().getWorld().dropItemNaturally(e.getEntity().getEyeLocation(), is);
             item.setPickupDelay(Integer.MAX_VALUE);
             item.setVelocity(new Vector(random.nextDouble() * 0.1, 0.4, random.nextDouble() * 0.1));
             bloodItems.put(item, System.currentTimeMillis());
