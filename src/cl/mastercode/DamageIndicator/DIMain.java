@@ -28,6 +28,7 @@ import cl.mastercode.DamageIndicator.storage.SimpleStorageProvider;
 import cl.mastercode.DamageIndicator.storage.StorageProvider;
 import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUpdateHandler;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.nifheim.bukkit.commandlib.CommandAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -52,6 +53,7 @@ public class DIMain extends JavaPlugin {
     private EntityHider entityHider;
     private DamageIndicatorCommand command;
     private FileConfiguration messages;
+    private BukkitAudiences adventure;
 
     public void reload() {
         new ConfigUpdateHandler(this).updateConfig();
@@ -121,6 +123,7 @@ public class DIMain extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        this.adventure = BukkitAudiences.create(this);
         saveResource("messages.yml", false);
         CompatUtil.onEnable();
         reload();
@@ -134,6 +137,10 @@ public class DIMain extends JavaPlugin {
         }
         if (bloodListener != null) {
             bloodListener.getBloodItems().forEach((item, time) -> item.remove());
+        }
+        if (this.adventure != null) {
+            this.adventure.close();
+            this.adventure = null;
         }
     }
 
@@ -193,5 +200,12 @@ public class DIMain extends JavaPlugin {
 
     public void reloadMessages() {
         messages = YamlConfiguration.loadConfiguration(getDataFolder().toPath().resolve("messages.yml").toFile());
+    }
+
+    public BukkitAudiences adventure() {
+        if (this.adventure == null) {
+            throw new IllegalStateException("Tried to access Adventure when the plugin was disabled!");
+        }
+        return this.adventure;
     }
 }

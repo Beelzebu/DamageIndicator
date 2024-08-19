@@ -1,7 +1,6 @@
 package cl.mastercode.DamageIndicator.command;
 
 import cl.mastercode.DamageIndicator.DIMain;
-import static cl.mastercode.DamageIndicator.util.CompatUtil.LEGACY_SERIALIZER;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.nifheim.bukkit.commandlib.RegistrableCommand;
 import org.bukkit.command.CommandSender;
@@ -74,7 +73,7 @@ public class DamageIndicatorCommand extends RegistrableCommand {
         for (int i = 0; i < replacements.length; i++) {
             message = message.replace("{" + i + "}", replacements[i]);
         }
-        sender.sendMessage(LEGACY_SERIALIZER.serialize(miniMessage.deserialize(message)));
+        plugin.adventure().sender(sender).sendMessage(miniMessage.deserialize(message));
     }
 
     private void sendHelpMessage(CommandSender sender) {
