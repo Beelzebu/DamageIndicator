@@ -31,8 +31,6 @@ Damage Indicator:
   # Disabled Entities: []
   Disabled Entities:
   - GHAST
-  - ZOMBIE
-  - IRON_GOLEM
   # List of spawn reasons that we must listen and mark entities so they won't spawn
   # damage indicators.
   # See https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/entity/CreatureSpawnEvent.SpawnReason.html
@@ -65,8 +63,9 @@ Blood:
   # If you don't want to disable entities, remove elements from the list set it to
   # Disabled Entities: []
   Disabled Entities:
-  - ZOMBIE
   - SKELETON
+  - IRON_GOLEM
+  - GHAST
   # List of spawn reasons that we must listen and mark entities so they won't bleed.
   # See https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/entity/CreatureSpawnEvent.SpawnReason.html
   # for all possible spawn reasons.
