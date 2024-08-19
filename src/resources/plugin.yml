@@ -6,6 +6,3 @@ softdepend: [ ProtocolLib, EcoSkills ]
 api-version: 1.16
 website: 'https://www.spigotmc.org/resources/55974/'
 description: 'DamageIndicator is a plugin that shows the damage you do to a mob or player.'
-libraries:
-- 'net.kyori:adventure-text-minimessage:4.17.0'
-- 'net.kyori:adventure-platform-bukkit:4.3.4'

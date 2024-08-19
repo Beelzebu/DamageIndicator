@@ -32,8 +32,8 @@ import org.bukkit.metadata.FixedMetadataValue;
  */
 public final class CompatUtil {
 
+    public static final LegacyComponentSerializer LEGACY_SERIALIZER = BukkitComponentSerializer.legacy();
     private static final MiniMessage miniMessage = MiniMessage.miniMessage();
-    private static final LegacyComponentSerializer legacySerializer = BukkitComponentSerializer.legacy();
     public static Particle BLOOD_PARTICLE = null;
     public static int MINOR_VERSION = 16;
 
@@ -63,7 +63,7 @@ public final class CompatUtil {
 
     public static ArmorStand buildArmorStand(Location location, double distance, FixedMetadataValue fixedMetadataValue, String name) {
         ArmorStand armorStand = location.getWorld().spawn(location.clone().add(0, location.getWorld().getMaxHeight() - location.getY(), 0), ArmorStand.class, stand -> setStandProperties(stand, location, distance, fixedMetadataValue));
-        armorStand.setCustomName(legacySerializer.serialize(miniMessage.deserialize(name)));
+        armorStand.setCustomName(LEGACY_SERIALIZER.serialize(miniMessage.deserialize(name)));
         armorStand.setCustomNameVisible(true);
         return armorStand;
     }
