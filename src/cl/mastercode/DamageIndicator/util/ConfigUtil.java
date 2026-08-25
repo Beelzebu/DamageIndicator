@@ -9,6 +9,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 /**
@@ -46,11 +47,13 @@ public final class ConfigUtil {
         if (entity instanceof ArmorStand) {
             return false;
         }
-        if (entity instanceof Player) {
+        if (entity instanceof TextDisplay) {
+            return false;
+        }
+        if (entity instanceof Player player) {
             if (!enablePlayer) {
                 return false;
             }
-            Player player = (Player) entity;
             if (player.isSneaking() && !sneaking) {
                 return false;
             }

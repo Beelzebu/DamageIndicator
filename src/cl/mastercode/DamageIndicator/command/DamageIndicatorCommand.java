@@ -4,9 +4,9 @@ import cl.mastercode.DamageIndicator.DIMain;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.nifheim.bukkit.commandlib.RegistrableCommand;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 
 public class DamageIndicatorCommand extends RegistrableCommand {
 
@@ -24,8 +24,8 @@ public class DamageIndicatorCommand extends RegistrableCommand {
             sendHelpMessage(sender);
         } else if (args[0].equalsIgnoreCase("toggle")) {
             if (sender instanceof Player player) {
-                boolean status = !plugin.getStorageProvider().showArmorStand(player);
-                plugin.getStorageProvider().setShowArmorStand(player, status);
+                boolean status = !plugin.getStorageProvider().showDamageIndicator(player);
+                plugin.getStorageProvider().setShowDamageIndicator(player, status);
                 if (status) {
                     sendMessage(sender, "Command.Damage Indicator.Enabled");
                 } else {
@@ -45,7 +45,7 @@ public class DamageIndicatorCommand extends RegistrableCommand {
                         if (args.length == 2) {
                             int range = getInt(sender, args[1]);
                             if (range > 0) {
-                                long total = player.getNearbyEntities(range, range, range).stream().filter(entity -> entity instanceof ArmorStand && plugin.isDamageIndicator(entity)).peek(Entity::remove).count();
+                                long total = player.getNearbyEntities(range, range, range).stream().filter(plugin::isDamageIndicator).peek(Entity::remove).count();
                                 sendMessage(sender, "Command.Clear.Total", String.valueOf(total), String.valueOf(range));
                             }
                         } else {
@@ -57,7 +57,7 @@ public class DamageIndicatorCommand extends RegistrableCommand {
                     break;
                 case "clearall":
                     if (sender instanceof Player player) {
-                        long total = player.getWorld().getEntitiesByClass(ArmorStand.class).stream().filter(entity -> entity != null && plugin.isDamageIndicator(entity)).peek(Entity::remove).count();
+                        long total = player.getWorld().getEntitiesByClass(TextDisplay.class).stream().filter(plugin::isDamageIndicator).peek(Entity::remove).count();
                         sendMessage(sender, "Command.Clear.All", String.valueOf(total));
                     } else {
                         sendMessage(sender, "Command.No Console");
@@ -69,11 +69,13 @@ public class DamageIndicatorCommand extends RegistrableCommand {
 
     private void sendMessage(CommandSender sender, String path, String... replacements) {
         String message = plugin.getMessages().getString(path);
-        if (message == null || message.isBlank()) return;
+        if (message == null || message.isBlank()) {
+            return;
+        }
         for (int i = 0; i < replacements.length; i++) {
             message = message.replace("{" + i + "}", replacements[i]);
         }
-        plugin.adventure().sender(sender).sendMessage(miniMessage.deserialize(message));
+        sender.sendMessage(miniMessage.deserialize(message));
     }
 
     private void sendHelpMessage(CommandSender sender) {
@@ -92,7 +94,9 @@ public class DamageIndicatorCommand extends RegistrableCommand {
             amount = Integer.parseInt(text);
         } catch (NumberFormatException ignored) {
         }
-        if (amount > 0) return amount;
+        if (amount > 0) {
+            return amount;
+        }
         sendMessage(sender, "Command.Clear.Invalid", text);
         return amount;
     }

@@ -3,6 +3,6 @@ main: cl.mastercode.DamageIndicator.DIMain
 authors: [ Beelzebu, CristianDossow ]
 version: ${project.version}
 softdepend: [ ProtocolLib, EcoSkills ]
-api-version: 1.16
+api-version: 1.20
 website: 'https://www.spigotmc.org/resources/55974/'
 description: 'DamageIndicator is a plugin that shows the damage you do to a mob or player.'

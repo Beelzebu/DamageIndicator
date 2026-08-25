@@ -16,9 +16,7 @@
 package cl.mastercode.DamageIndicator;
 
 import cl.mastercode.DamageIndicator.command.DamageIndicatorCommand;
-import cl.mastercode.DamageIndicator.dependency.DependencyManager;
 import cl.mastercode.DamageIndicator.hider.EntityHider;
-import cl.mastercode.DamageIndicator.hider.LegacyEntityHider;
 import cl.mastercode.DamageIndicator.hider.Policy;
 import cl.mastercode.DamageIndicator.hider.SpigotEntityHider;
 import cl.mastercode.DamageIndicator.hook.HookManager;
@@ -26,34 +24,32 @@ import cl.mastercode.DamageIndicator.listener.BloodListener;
 import cl.mastercode.DamageIndicator.listener.DamageIndicatorListener;
 import cl.mastercode.DamageIndicator.storage.SimpleStorageProvider;
 import cl.mastercode.DamageIndicator.storage.StorageProvider;
-import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUpdateHandler;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.nifheim.bukkit.commandlib.CommandAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Iterator;
 import java.util.Map;
+import org.bukkit.scheduler.BukkitTask;
 
 /**
  * @author YitanTribal, Beelzebu
  */
 public class DIMain extends JavaPlugin {
 
+    private EntityHider entityHider = new SpigotEntityHider(this, Policy.BLACKLIST);
     private DamageIndicatorListener damageIndicatorListener;
     private BloodListener bloodListener;
     private StorageProvider storageProvider = null;
-    private EntityHider entityHider;
     private DamageIndicatorCommand command;
     private FileConfiguration messages;
-    private BukkitAudiences adventure;
+    private BukkitTask task;
 
     public void reload() {
         new ConfigUpdateHandler(this).updateConfig();
@@ -68,8 +64,8 @@ public class DIMain extends JavaPlugin {
         }
         // remove armor stands
         if (damageIndicatorListener != null) {
-            damageIndicatorListener.getArmorStands().forEach((armor, time) -> armor.remove());
-            damageIndicatorListener.getArmorStands().clear();
+            damageIndicatorListener.getDamageIndicators().forEach((armor, time) -> armor.remove());
+            damageIndicatorListener.getDamageIndicators().clear();
         }
         // remove blood
         if (bloodListener != null) {
@@ -77,19 +73,6 @@ public class DIMain extends JavaPlugin {
             bloodListener.getBloodItems().clear();
         }
         if (getConfig().getBoolean("Damage Indicator.Enabled")) {
-            if (CompatUtil.MINOR_VERSION >= 18) { // 1.18 added an entity hider
-                getLogger().info("Version 1.18 or higher detected, trying to use SpigotEntityHider for per-player damage indicators.");
-                try {
-                    Player.class.getDeclaredMethod("canSee", Entity.class);
-                    entityHider = new SpigotEntityHider(this, Policy.BLACKLIST);
-                } catch (ReflectiveOperationException e) {
-                    getLogger().info("Your spigot version seems outdated, please check for updates with /version command!");
-                }
-            }
-            if (entityHider == null && Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
-                getLogger().info("ProtocolLib found, trying to enable LegacyEntityHider for per-player damage indicators.");
-                entityHider = new LegacyEntityHider(this, Policy.BLACKLIST);
-            }
             if (damageIndicatorListener == null) {
                 Bukkit.getPluginManager().registerEvents(damageIndicatorListener = new DamageIndicatorListener(this, new HookManager(this)), this);
             }
@@ -117,15 +100,8 @@ public class DIMain extends JavaPlugin {
     }
 
     @Override
-    public void onLoad() {
-        new DependencyManager(this).loadDependencies();
-    }
-
-    @Override
     public void onEnable() {
-        this.adventure = BukkitAudiences.create(this);
         saveResource("messages.yml", false);
-        CompatUtil.onEnable();
         reload();
         startTasks();
     }
@@ -133,38 +109,43 @@ public class DIMain extends JavaPlugin {
     @Override
     public void onDisable() {
         if (damageIndicatorListener != null) {
-            damageIndicatorListener.getArmorStands().forEach((armor, time) -> armor.remove());
+            damageIndicatorListener.getDamageIndicators().forEach((armor, time) -> armor.remove());
         }
         if (bloodListener != null) {
             bloodListener.getBloodItems().forEach((item, time) -> item.remove());
         }
-        if (this.adventure != null) {
-            this.adventure.close();
-            this.adventure = null;
+        if (task != null) {
+            task.cancel();
         }
     }
 
     private void startTasks() {
-        Bukkit.getScheduler().runTaskTimer(this, () -> {
+        final long damageIndicatorDuration = getConfig().getInt("Damage Indicator.Duration", 30) * 50L;
+        final long bloodIndicatorDuration = getConfig().getInt("Blood Indicator.Duration", 30) * 50L;
+        task = Bukkit.getScheduler().runTaskTimer(this, () -> {
             if (damageIndicatorListener != null) {
-                Iterator<Map.Entry<ArmorStand, Long>> asit = damageIndicatorListener.getArmorStands().entrySet().iterator();
-                while (asit.hasNext()) {
-                    Map.Entry<ArmorStand, Long> ent = asit.next();
-                    if (ent.getValue() + 1500 <= System.currentTimeMillis()) {
-                        ent.getKey().remove();
-                        asit.remove();
+                Iterator<Map.Entry<TextDisplay, Long>> iterator = damageIndicatorListener.getDamageIndicators().entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<TextDisplay, Long> entry = iterator.next();
+                    TextDisplay textDisplay = entry.getKey();
+                    Long time = entry.getValue();
+                    if (time + damageIndicatorDuration <= System.currentTimeMillis()) {
+                        textDisplay.remove();
+                        iterator.remove();
                     } else {
-                        ent.getKey().teleport(ent.getKey().getLocation().clone().add(0.0, 0.07, 0.0));
+                        textDisplay.teleport(textDisplay.getLocation().add(0.0, 0.07, 0.0));
                     }
                 }
             }
             if (bloodListener != null) {
-                Iterator<Map.Entry<Item, Long>> bit = bloodListener.getBloodItems().entrySet().iterator();
-                while (bit.hasNext()) {
-                    Map.Entry<Item, Long> ent = bit.next();
-                    if (ent.getValue() + 2000 <= System.currentTimeMillis()) {
-                        ent.getKey().remove();
-                        bit.remove();
+                Iterator<Map.Entry<Item, Long>> iterator = bloodListener.getBloodItems().entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<Item, Long> entry = iterator.next();
+                    Item item = entry.getKey();
+                    Long time = entry.getValue();
+                    if (time + bloodIndicatorDuration <= System.currentTimeMillis()) {
+                        item.remove();
+                        iterator.remove();
                     }
                 }
             }
@@ -172,8 +153,8 @@ public class DIMain extends JavaPlugin {
     }
 
     public boolean isDamageIndicator(Entity entity) {
-        if (entity instanceof ArmorStand armorStand && entity.isValid()) {
-            return armorStand.hasMetadata("Mastercode-DamageIndicator") && armorStand.isMarker() && !armorStand.isVisible() && armorStand.isCustomNameVisible() && !armorStand.hasGravity();
+        if (entity instanceof TextDisplay display && entity.isValid()) {
+            return display.hasMetadata("Mastercode-DamageIndicator");
         }
         return false;
     }
@@ -200,12 +181,5 @@ public class DIMain extends JavaPlugin {
 
     public void reloadMessages() {
         messages = YamlConfiguration.loadConfiguration(getDataFolder().toPath().resolve("messages.yml").toFile());
-    }
-
-    public BukkitAudiences adventure() {
-        if (this.adventure == null) {
-            throw new IllegalStateException("Tried to access Adventure when the plugin was disabled!");
-        }
-        return this.adventure;
     }
 }

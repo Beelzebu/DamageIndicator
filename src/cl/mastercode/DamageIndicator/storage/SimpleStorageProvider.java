@@ -45,11 +45,22 @@ public class SimpleStorageProvider implements StorageProvider {
 
     @Override
     public boolean showArmorStand(Player player) {
-        return data.getBoolean(player.getUniqueId().toString(), true);
+        return showDamageIndicator(player);
     }
 
     @Override
     public void setShowArmorStand(Player player, boolean status) {
+        setShowDamageIndicator(player, status);
+    }
+
+    @Override
+    public boolean showDamageIndicator(Player player) {
+        return data.getBoolean(player.getUniqueId().toString(), true);
+
+    }
+
+    @Override
+    public void setShowDamageIndicator(Player player, boolean status) {
         data.set(player.getUniqueId().toString(), status);
         save();
     }

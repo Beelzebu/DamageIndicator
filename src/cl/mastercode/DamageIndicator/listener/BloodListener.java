@@ -16,7 +16,6 @@
 package cl.mastercode.DamageIndicator.listener;
 
 import cl.mastercode.DamageIndicator.DIMain;
-import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUtil;
 import org.bukkit.Color;
 import org.bukkit.Effect;
@@ -132,7 +131,7 @@ public class BloodListener implements Listener {
             return;
         }
         LivingEntity livingEntity = (LivingEntity) entity;
-        e.getEntity().getWorld().spawnParticle(CompatUtil.BLOOD_PARTICLE, livingEntity.getEyeLocation(), 7, .5, .2, .5, 10, new Particle.DustOptions(Color.fromBGR(61, 61, 255), 3f));
+        e.getEntity().getWorld().spawnParticle(Particle.DUST, livingEntity.getEyeLocation(), 7, .5, .2, .5, 10, new Particle.DustOptions(Color.fromBGR(61, 61, 255), 3f));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

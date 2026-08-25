@@ -23,19 +23,39 @@ import org.bukkit.entity.Player;
 public interface StorageProvider {
 
     /**
-     * Check if a player should see a armor stand or not.
+     * Check if a player should see the damage indicators or not.
      *
      * @param player player to check.
-     * @return true if the player can see the armor stand, false otherwhise.
+     * @return true if the player can see the armor stand, false otherwise.
+     * @deprecated use {@link #showDamageIndicator(Player)} instead.
      */
+    @Deprecated(forRemoval = true)
     boolean showArmorStand(Player player);
 
     /**
-     * Set the armorstand show status for a player.
+     * Set the show damage indicator status for a player.
+     *
+     * @param player player to set the status.
+     * @param status new status.
+     * @deprecated use {@link #setShowDamageIndicator(Player, boolean)} instead.
+     */
+    @Deprecated(forRemoval = true)
+    void setShowArmorStand(Player player, boolean status);
+
+
+    /**
+     * Check if a player should see the damage indicators or not.
+     *
+     * @param player player to check.
+     * @return true if the player can see the damage indicator, false otherwise.
+     */
+    boolean showDamageIndicator(Player player);
+
+    /**
+     * Set the show damage indicator status for a player.
      *
      * @param player player to set the status.
      * @param status new status.
      */
-    void setShowArmorStand(Player player, boolean status);
-
+    void setShowDamageIndicator(Player player, boolean status);
 }

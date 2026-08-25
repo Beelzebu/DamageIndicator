@@ -17,16 +17,17 @@ package cl.mastercode.DamageIndicator.listener;
 
 import cl.mastercode.DamageIndicator.DIMain;
 import cl.mastercode.DamageIndicator.hook.HookManager;
-import cl.mastercode.DamageIndicator.util.CompatUtil;
 import cl.mastercode.DamageIndicator.util.ConfigUtil;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -53,11 +54,11 @@ public class DamageIndicatorListener implements Listener {
 
     private static final String DISABLED_DI = "DI-DISABLED-DI";
     private final DIMain plugin;
-    private final Map<ArmorStand, Long> armorStands = new LinkedHashMap<>();
+    private final Map<TextDisplay, Long> damageIndicators = new LinkedHashMap<>();
     private final Set<EntityType> disabledEntities = new HashSet<>();
     private final Set<CreatureSpawnEvent.SpawnReason> disabledSpawnReasons = new HashSet<>();
     private final Set<EntityDamageEvent.DamageCause> disabledDamageCauses = new HashSet<>();
-    private final FixedMetadataValue armorStandMeta;
+    private final FixedMetadataValue damageIndicatorMeta;
     private final HookManager hookManager;
     private boolean enabled = true;
     private boolean enablePlayer = true;
@@ -68,7 +69,7 @@ public class DamageIndicatorListener implements Listener {
     public DamageIndicatorListener(DIMain plugin, HookManager hookManager) {
         this.plugin = plugin;
         this.hookManager = hookManager;
-        armorStandMeta = new FixedMetadataValue(plugin, 0);
+        damageIndicatorMeta = new FixedMetadataValue(plugin, 0);
         reload();
     }
 
@@ -114,7 +115,7 @@ public class DamageIndicatorListener implements Listener {
             }
             return;
         }
-        if (!isSpawnArmorStand(e.getEntity(), null, .1)) {
+        if (!isSpawnDamageIndicator(e.getEntity(), null, .1)) {
             return;
         }
         if (disabledSpawnReasons.contains(e.getSpawnReason())) {
@@ -124,7 +125,7 @@ public class DamageIndicatorListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void oneEntitySpawn(EntitySpawnEvent e) {
-        if (e.isCancelled() && e.getEntity() instanceof ArmorStand) {
+        if (e.isCancelled() && e.getEntity() instanceof TextDisplay) {
             if (plugin.isDamageIndicator(e.getEntity())) {
                 e.setCancelled(false);
             }
@@ -134,11 +135,10 @@ public class DamageIndicatorListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChunkUnload(ChunkUnloadEvent event) {
         for (Entity entity : event.getChunk().getEntities()) {
-            if (entity.getType().equals(EntityType.ARMOR_STAND)) {
-                ArmorStand as = (ArmorStand) entity;
-                if (plugin.isDamageIndicator(as)) {
-                    armorStands.remove(as);
-                    as.remove();
+            if (entity instanceof TextDisplay display) {
+                if (plugin.isDamageIndicator(display)) {
+                    display.remove();
+                    damageIndicators.remove(display);
                 }
             }
         }
@@ -147,11 +147,10 @@ public class DamageIndicatorListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChunkLoad(ChunkLoadEvent event) {
         for (Entity entity : event.getChunk().getEntities()) {
-            if (entity.getType().equals(EntityType.ARMOR_STAND)) {
-                ArmorStand as = (ArmorStand) entity;
-                if (plugin.isDamageIndicator(as)) {
-                    armorStands.remove(as);
-                    as.remove();
+            if (entity instanceof TextDisplay display) {
+                if (plugin.isDamageIndicator(display)) {
+                    display.remove();
+                    damageIndicators.remove(display);
                 }
             }
         }
@@ -171,7 +170,7 @@ public class DamageIndicatorListener implements Listener {
             return;
         }
         if (!e.isCancelled()) {
-            handleArmorStand(livingEntity, e.getAmount());
+            handleDamageIndicator(livingEntity, e.getAmount());
         }
     }
 
@@ -183,7 +182,7 @@ public class DamageIndicatorListener implements Listener {
         if (!(e.getEntity() instanceof LivingEntity)) {
             return;
         }
-        handleArmorStand((LivingEntity) e.getEntity(), e.getCause(), e.getFinalDamage(), hookManager.isCritic(e));
+        handleDamageIndicator((LivingEntity) e.getEntity(), e.getCause(), e.getFinalDamage(), hookManager.isCritic(e));
     }
 
     private String damageFormat(double damage) {
@@ -196,36 +195,53 @@ public class DamageIndicatorListener implements Listener {
         return df.format(damage);
     }
 
-    private void handleArmorStand(LivingEntity entity, double health) {
-        if (isSpawnArmorStand(entity, null, health)) {
-            spawnArmorStand(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityRegain", "").replace("%health%", damageFormat(health)));
+    private void handleDamageIndicator(LivingEntity entity, double health) {
+        if (isSpawnDamageIndicator(entity, null, health)) {
+            spawnDamageIndicator(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityRegain", "").replace("%health%", damageFormat(health)));
         }
     }
 
-    private void handleArmorStand(LivingEntity entity, EntityDamageEvent.DamageCause damageCause, double damage, boolean crit) {
-        if (isSpawnArmorStand(entity, damageCause, damage)) {
+    private void handleDamageIndicator(LivingEntity entity, EntityDamageEvent.DamageCause damageCause, double damage, boolean crit) {
+        if (isSpawnDamageIndicator(entity, damageCause, damage)) {
             if (!crit) {
-                spawnArmorStand(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityDamage", "").replace("%damage%", damageFormat(damage)));
+                spawnDamageIndicator(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityDamage", "").replace("%damage%", damageFormat(damage)));
             } else {
-                spawnArmorStand(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityDamage", "").replace("%damage%", damageFormat(damage)) + "&r ✧");
+                spawnDamageIndicator(entity.getLocation(), plugin.getConfig().getString("Damage Indicator.Format.EntityDamage", "").replace("%damage%", damageFormat(damage)) + "&r ✧");
             }
         }
     }
 
-    public ArmorStand spawnArmorStand(Location loc, String name) {
-        ArmorStand armorStand = CompatUtil.buildArmorStand(loc, plugin.getConfig().getDouble("Damage Indicator.Distance"), armorStandMeta, name);
+    public TextDisplay spawnDamageIndicator(Location loc, String name) {
+        TextDisplay display = buildTextDisplay(loc, plugin.getConfig().getDouble("Damage Indicator.Distance"), damageIndicatorMeta, name);
         if (plugin.getEntityHider() != null) {
-            Bukkit.getOnlinePlayers().stream().filter(op -> !plugin.getStorageProvider().showArmorStand(op)).forEach(op -> plugin.getEntityHider().hideEntity(op, armorStand));
+            Bukkit.getOnlinePlayers().stream().filter(op -> !plugin.getStorageProvider().showDamageIndicator(op)).forEach(op -> plugin.getEntityHider().hideEntity(op, display));
         }
-        armorStands.put(armorStand, System.currentTimeMillis());
-        return armorStand;
+        damageIndicators.put(display, System.currentTimeMillis());
+        return display;
     }
 
-    private boolean isSpawnArmorStand(Entity entity, EntityDamageEvent.DamageCause damageCause, double damage) {
+    private boolean isSpawnDamageIndicator(Entity entity, EntityDamageEvent.DamageCause damageCause, double damage) {
         return ConfigUtil.isShowIndicator(entity, damageCause, damage, DISABLED_DI, enabled, enablePlayer, sneaking, enableMonster, enableAnimal, disabledEntities, disabledDamageCauses);
     }
 
-    public Map<ArmorStand, Long> getArmorStands() {
-        return armorStands;
+    public Map<TextDisplay, Long> getDamageIndicators() {
+        return damageIndicators;
+    }
+
+    private TextDisplay buildTextDisplay(Location location, double distance, FixedMetadataValue fixedMetadataValue, String name) {
+        return location.getWorld().spawn(location.clone().add(0, distance, 0), TextDisplay.class, stand -> setupDamageIndicator(stand, fixedMetadataValue, name));
+    }
+
+    private void setupDamageIndicator(TextDisplay textDisplay, FixedMetadataValue fixedMetadataValue, String name) {
+        textDisplay.setMetadata("Mastercode-DamageIndicator", fixedMetadataValue);
+        textDisplay.text(MiniMessage.miniMessage().deserialize(name));
+        textDisplay.setBillboard(Display.Billboard.CENTER);
+        textDisplay.setAlignment(TextDisplay.TextAlignment.CENTER);
+        textDisplay.setShadowed(false);
+        textDisplay.setViewRange(5);
+        textDisplay.setPersistent(false);
+        textDisplay.setTeleportDuration(1);
+        textDisplay.setInterpolationDelay(0);
+        textDisplay.setTextOpacity((byte) 0);
     }
 }
